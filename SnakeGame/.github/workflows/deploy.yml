@@ -13,6 +13,7 @@ env:
   GAR_LOCATION: us-central1-docker.pkg.dev
   REPOSITORY: snake-game-repo
   IMAGE_NAME: snake-game
+  SERVICE_NAME: snake-game-dev # Default fallback to satisfy linter
 
 jobs:
   devsecops_scans:
