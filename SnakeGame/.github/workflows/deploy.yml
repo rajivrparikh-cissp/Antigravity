@@ -8,12 +8,11 @@ on:
       - main
 
 env:
-  PROJECT_ID: your-gcp-project-id # TODO: Update this
+  PROJECT_ID: snakegame-492002
   REGION: us-central1
   GAR_LOCATION: us-central1-docker.pkg.dev
   REPOSITORY: snake-game-repo
   IMAGE_NAME: snake-game
-  SERVICE_NAME: snake-game-dev # Default fallback to satisfy linter
 
 jobs:
   devsecops_scans:
@@ -44,8 +43,9 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          base: ""
+          head: ${{ github.ref_name }}
+          extra_args: --debug --only-verified
 
   build_and_deploy:
     name: Build Docker and Deploy to Cloud Run
@@ -64,11 +64,11 @@ jobs:
         id: env_vars
         run: |
           if [[ "${{ github.ref_name }}" == "dev" ]]; then
-            echo "SERVICE_NAME=snake-game-dev" >> $GITHUB_ENV
+            echo "SERVICE_NAME=snake-game-dev" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref_name }}" == "test" ]]; then
-            echo "SERVICE_NAME=snake-game-test" >> $GITHUB_ENV
+            echo "SERVICE_NAME=snake-game-test" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "SERVICE_NAME=snake-game-prod" >> $GITHUB_ENV
+            echo "SERVICE_NAME=snake-game-prod" >> $GITHUB_OUTPUT
           fi
 
       - name: Authenticate to Google Cloud
@@ -92,7 +92,7 @@ jobs:
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: ${{ env.SERVICE_NAME }}
+          service: ${{ steps.env_vars.outputs.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           # Define environment-specific configurations
